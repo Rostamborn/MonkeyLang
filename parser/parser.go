@@ -22,20 +22,35 @@ func NewParser(lex *lexer.Lexer) *Parser {
     return p
 }
 
-func (p *Parser) nextToken() {
-    p.curToken = p.peekToken
-    p.peekToken = p.lex.NextToken()
+func (p *Parser) ParseProgram() *ast.Program {
+    program := &ast.Program{}
+    program.Statements = make([]ast.Statement, 0)
+
+    for !p.curTokenIs(token.EOF) {
+        stmt := p.parseStatement()
+        if stmt != nil {
+            program.Statements = append(program.Statements, stmt)
+        }
+        p.nextToken()
+    }
+    return program
 }
+
+
 
 func (p *Parser) parseStatement() ast.Statement {
     switch p.curToken.Type {
     case token.LET:
         return p.parseLetStatement()
+    case token.RETURN:
+        return p.parseReturnStatement()
     default:
         return nil
     }
 }
 
+// TODO: if you don't put semicolon, nothing happens!
+// the computer just gets hot and loud
 func (p *Parser) parseLetStatement() *ast.LetStatement {
     stmt := &ast.LetStatement{Token: p.curToken}
 
@@ -54,6 +69,28 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
     }
 
     return stmt
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+    stmt := &ast.ReturnStatement{Token: p.curToken}
+
+    // if !p.expectPeek(token.IDENT) {
+    //     return nil
+    // }
+    //
+    // stmt.ReturnValue = 
+    p.nextToken()
+
+    if !p.curTokenIs(token.SEMICOLON) {
+        p.nextToken()
+    }
+
+    return stmt
+}
+
+func (p *Parser) nextToken() {
+    p.curToken = p.peekToken
+    p.peekToken = p.lex.NextToken()
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
@@ -83,16 +120,4 @@ func (p *Parser) peekError(t token.TokenType) {
     p.errors = append(p.errors, message)
 }
 
-func (p *Parser) ParseProgram() *ast.Program {
-    program := &ast.Program{}
-    program.Statements = make([]ast.Statement, 0)
 
-    for !p.curTokenIs(token.EOF) {
-        stmt := p.parseStatement()
-        if stmt != nil {
-            program.Statements = append(program.Statements, stmt)
-        }
-        p.nextToken()
-    }
-    return program
-}
