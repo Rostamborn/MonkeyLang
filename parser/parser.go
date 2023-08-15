@@ -58,6 +58,9 @@ func NewParser(lex *lexer.Lexer) *Parser {
     p.registerPrefix(token.INT, p.parseIntegerLiteral)
     p.registerPrefix(token.BANG, p.parsePrefixExpression)
     p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+    p.registerPrefix(token.FALSE, p.parseBoolean)
+    p.registerPrefix(token.TRUE, p.parseBoolean)
+    p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 
     p.infixParseFuncs = make(map[token.TokenType]infixParseFunc)
     p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -124,11 +127,6 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
     stmt := &ast.ReturnStatement{Token: p.curToken}
 
-    // if !p.expectPeek(token.IDENT) {
-    //     return nil
-    // }
-    //
-    // stmt.ReturnValue = 
     p.nextToken()
 
     if !p.curTokenIs(token.SEMICOLON) {
@@ -159,7 +157,11 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
     }
     leftExpression := prefix()
 
-    for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+    if p.peekToken.Type == token.LPAREN {
+        p.nextToken()
+    }
+
+    for precedence < p.peekPrecedence() {
         infixFunc := p.infixParseFuncs[p.peekToken.Type]
         if infixFunc == nil {
             return leftExpression
@@ -213,8 +215,30 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
     }
 
     precedence := p.curPrecedence()
+
     p.nextToken()
+
+    
     expression.Right = p.parseExpression(precedence)
+
+    return expression
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+    p.nextToken()
+
+    expression := p.parseExpression(LOWEST)
+
+    p.nextToken()
+    if !p.curTokenIs(token.RPAREN) {
+        return nil
+    }
+
+    return expression
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+    expression := &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 
     return expression
 }
