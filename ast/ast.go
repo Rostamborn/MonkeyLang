@@ -252,7 +252,8 @@ type IfExpression struct {
     Token token.Token
     Condition Expression
     Consequence *BlockStatement
-    Alternative *BlockStatement
+    Alternative []*IfExpression
+    Default *BlockStatement
 }
 
 func (ie *IfExpression) TokenLiteral() string {
@@ -271,9 +272,17 @@ func (ie *IfExpression) String() string {
     out.WriteString(" ")
     out.WriteString(ie.Consequence.String())
 
-    if ie.Alternative != nil {
+
+    for _, alt := range ie.Alternative {
+        // if alt != nil {
+        out.WriteString("else if ")
+        out.WriteString(alt.String())
+        // }
+    }
+    
+    if ie.Default != nil {
         out.WriteString("else ")
-        out.WriteString(ie.Alternative.String())
+        out.WriteString(ie.Default.String())
     }
 
     return out.String()

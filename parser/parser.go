@@ -240,6 +240,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 
 func (p *Parser) parseIfExpression() ast.Expression {
     expression := &ast.IfExpression{Token: p.curToken}
+    expression.Alternative = make([]*ast.IfExpression, 0)
 
     if !p.expectPeek(token.LPAREN) {
         return nil
@@ -256,17 +257,46 @@ func (p *Parser) parseIfExpression() ast.Expression {
         return nil
     }
 
-    expression.Consequence = p.parseBlockStatement()
+    expression.Consequence = p.parseBlockStatement() // will go to parseBlockStatement when on LBRACE
 
-
-    if p.peekTokenIs(token.ELSE) {
+    for p.peekTokenIs(token.ELSE) {
         p.nextToken()
 
-        if !p.expectPeek(token.LBRACE) {
-            return nil
-        }
+        if p.peekTokenIs(token.IF) {
+            p.nextToken()
 
-        expression.Alternative = p.parseBlockStatement()
+            // we are on IF now. we'll do as parseIfExpression() does
+
+            altExpression := &ast.IfExpression{Token: p.curToken}
+            altExpression.Alternative = make([]*ast.IfExpression, 0)
+
+            if !p.expectPeek(token.LPAREN) {
+                return nil
+            }
+            p.nextToken()
+
+            altExpression.Condition = p.parseExpression(LOWEST)
+
+            if !p.expectPeek(token.RPAREN) {
+                return nil
+            }
+
+            if !p.expectPeek(token.LBRACE) {
+                return nil
+            }
+
+            altExpression.Consequence = p.parseBlockStatement()
+
+            expression.Alternative = append(expression.Alternative, altExpression)
+
+        } else {
+                
+            if !p.expectPeek(token.LBRACE) {
+                return nil
+            }
+
+            expression.Default = p.parseBlockStatement()
+        }
     }
 
     return expression

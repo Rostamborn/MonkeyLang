@@ -489,13 +489,13 @@ func TestIfExpression(t *testing.T) {
         return
     }
 
-    if exp.Alternative != nil {
-        t.Errorf("exp.Alternative.Statements was not nil. got=%+v", exp.Alternative)
+    if exp.Default != nil {
+        t.Errorf("exp.Default.Statements was not nil. got=%+v", exp.Default)
     }
 }
 
 func TestIfElseExpression(t *testing.T) {
-    input := "if (x < y) { x } else { y }"
+    input := "if (x < y) { x } else if (a > b) { y } else if (a > b) { y } else { z }"
 
     lex := lexer.NewLexer(input)
     p := NewParser(lex)
@@ -533,12 +533,31 @@ func TestIfElseExpression(t *testing.T) {
         return
     }
 
-    alternative, ok := exp.Alternative.Statements[0].(*ast.ExpressionStatement)
-    if !ok {
-        t.Fatalf("Statements[0] is not ast.ExpressionStatement. got=%T", exp.Alternative.Statements[0])
+    for _, alt := range exp.Alternative {
+        if !testInfixExpression(t, alt.Condition, "a", ">", "b") {
+            return
+        }
+
+        if len(alt.Consequence.Statements) != 1 {
+            t.Errorf("consequence is not 1 statements. got=%d", len(alt.Consequence.Statements))
+        }
+
+        consequence, ok = alt.Consequence.Statements[0].(*ast.ExpressionStatement)
+        if !ok {
+            t.Fatalf("Statements[0] is not ast.ExpressionStatement. got=%T", alt.Consequence.Statements[0])
+        }
+
+        if !testIdentifier(t, consequence.Expression, "y") {
+            return 
+        }
     }
 
-    if !testIdentifier(t, alternative.Expression, "y") {
+    defaultStatement, ok := exp.Default.Statements[0].(*ast.ExpressionStatement)
+    if !ok {
+        t.Fatalf("Statements[0] is not ast.ExpressionStatement. got=%T", exp.Default.Statements[0])
+    }
+    
+    if !testIdentifier(t, defaultStatement.Expression, "z") {
         return
-    } 
+    }
 }
