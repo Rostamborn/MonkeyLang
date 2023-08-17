@@ -2,7 +2,7 @@
 
 ### Overview
 This is a language mostly based on the fantastic book 
-[Writing An Interpreter In Go](https://interpreterbook.com/) 
+[Writing An Interpreter In Go](https://interpreterbook.com/). 
 I do this for educational purposes so I can build my own stuff 
 from ground up later.
 
@@ -49,7 +49,6 @@ we give meaning to whatever we accept as valid input
 ## Current State
 | Feature | State |
 | ------- | -------|
-| Lexer | working state, features to be added |
-| Parser | working state, features to be added |
-| AST | working state |
+| Lexer | working state |
+| Parser | working state |
 | Eval/Semantics | Not developed yet |
