@@ -28,7 +28,7 @@ support for unicode and etc.
 ## Structure
 
 #### Lexer
-Given and input string, we first tokenize it with the help of 
+Given an input string, we first tokenize it with the help of 
 the Lexer. At this step we don't care about the syntax or the semantics 
 of our language. We only define what is considered an identifier, a keyword,
 an operator and etc.
@@ -40,6 +40,8 @@ the syntax. It reads through the tokens and builds an [Abstract Syntax Tree](htt
 The tree is an abstract summarization of our grammar for the given input. it is 
 abstract because it does not contain some inessential parts of the syntax like 
 punctuation(braces, brackets and etc.) 
+It must be noted that [Pratt Parsing](https://en.wikipedia.org/wiki/Operator-precedence_parser#Pratt_parsing) is the author's choice 
+for the parsing algorithm.
 
 
 #### Eval
