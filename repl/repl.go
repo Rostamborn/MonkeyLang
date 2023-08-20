@@ -5,8 +5,8 @@ import(
     "fmt"
     "io"
     "monkey/lexer"
-    // "monkey/token"
     "monkey/parser"
+    "monkey/evaluator"
 )
 
 const PROMPT = "$ "
@@ -30,8 +30,14 @@ func Start(in io.Reader, out io.Writer) {
             continue
         }
 
-        io.WriteString(out, program.String())
-        io.WriteString(out, "\n")
+        evalueated := evaluator.Eval(program)
+        if evalueated != nil {
+            io.WriteString(out, evalueated.Inspect())
+            io.WriteString(out, "\n")
+        }
+
+        // io.WriteString(out, program.String())
+        // io.WriteString(out, "\n")
         // for tok := lex.NextToken(); tok.Type != token.EOF; tok = lex.NextToken() {
         //     fmt.Printf("%+v\n", tok)
         // }
