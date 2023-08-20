@@ -53,4 +53,4 @@ we give meaning to whatever we accept as valid input
 | ------- | -------|
 | Lexer | working state |
 | Parser | working state |
-| Eval/Semantics | Not developed yet |
+| Eval/Semantics | initial development phase |
