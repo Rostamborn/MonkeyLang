@@ -21,7 +21,7 @@ Warning: This is in early development, so don't expect much
 
 ## Features
 the language is mostly gonna be based on the book, but shall 
-also include more features like support for other types of numbers, 
+also include more features like support for else-if expressions, other types of numbers, 
 support for unicode and etc. 
 
 
