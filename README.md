@@ -45,7 +45,13 @@ for the parsing algorithm.
 
 
 #### Eval
-we give meaning to whatever we accept as valid input 
+We give meaning to whatever we accept as valid input. This means that we need 
+to implement some sort of object system to keep track of things. In monkey everything is 
+an object. We even have first class functions(we can pass them around and assign them to variable 
+. we even have closures). the Eval() function evaluates the input recursively. Environments are created 
+as a way to keep track of identifiers and the values associated with them(kind of like scopes). 
+Functions have their own environments that are the extension of the environment they were defined 
+in. That is precisely the reason why closures are possible.
 
 
 ## Current State
@@ -53,4 +59,4 @@ we give meaning to whatever we accept as valid input
 | ------- | -------|
 | Lexer | working state |
 | Parser | working state |
-| Eval/Semantics | initial development phase |
+| Eval/Semantics | working state |
