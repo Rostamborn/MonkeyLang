@@ -73,6 +73,10 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.NewToken(token.LBRACE, l.ch)
 	case '}':
 		tok = token.NewToken(token.RBRACE, l.ch)
+    case '"':
+        l.readChar()
+        tok.Literal = l.readStringLiteral()
+        tok.Type = token.STRING
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -108,6 +112,16 @@ func (l *Lexer) readNumber() string {
 		l.readChar()
 	}
 	return l.input[position:l.position]
+}
+
+func (l *Lexer) readStringLiteral() string {
+    position := l.position
+    
+    for l.ch != '"' && l.ch != 0 {
+        l.readChar()
+    }
+
+    return l.input[position:l.position]
 }
 
 func (l *Lexer) skipWhitespace() {

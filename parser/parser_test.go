@@ -1,10 +1,10 @@
 package parser
 
 import (
-    "fmt"
-    "testing"
-    "monkey/ast"
-    "monkey/lexer"
+	"fmt"
+	"monkey/ast"
+	"monkey/lexer"
+	"testing"
 )
 
 func TestLetStatements(t *testing.T) {
@@ -669,4 +669,23 @@ func TestCallExpressionParsing(t *testing.T) {
     testLiteralExpression(t, exp.Arguments[0], 1)
     testInfixExpression(t, exp.Arguments[1], 2, "*", 3)
     testInfixExpression(t, exp.Arguments[2], 4, "+", 5)
+}
+
+func TestSTringLIteralExpression(t *testing.T) {
+    input := `"how ya doing mate";`
+
+    lex := lexer.NewLexer(input)
+    p := NewParser(lex)
+    program := p.ParseProgram()
+    checkParserErrors(t, p)
+
+    stmt := program.Statements[0].(*ast.ExpressionStatement)
+    literal, ok := stmt.Expression.(*ast.StringLiteral)
+    if !ok {
+        t.Fatalf("exp not *ast.StringLiteral. got=%T", stmt.Expression)
+    }
+
+    if literal.Value != "how ya doing mate" {
+        t.Errorf("literal.Value not %q. got=%q", "how ya doing mate", literal.Value)
+    }
 }

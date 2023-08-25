@@ -203,7 +203,7 @@ func TestErrorHandling(t *testing.T) {
             }
         `, "unknown operator: BOOLEAN + BOOLEAN"},
         {"foobar", "identifier not found: foobar"},
-        // {`"Hello" - "World"`, "unknown operator: STRING - STRING"},
+        {`"Hello" - "World"`, "unknown operator: STRING - STRING"},
         // {`{"name": "Monkey"}[fn(x) { x }];`, "unusable as hash key: FUNCTION"},
     }
 
@@ -290,4 +290,48 @@ func TestClosures(t *testing.T) {
     `
 
     testIntegerObject(t, testEval(input), 4)
+}
+
+func TestStringLiteral(t *testing.T) {
+    input := `"how ya doing mate";`
+
+    evaluated := testEval(input)
+
+    str, ok := evaluated.(*object.String)
+    if !ok {
+        t.Fatalf("object is not String. Got=%T (%+v)", evaluated, evaluated)
+    }
+
+    if str.Value != "how ya doing mate" {
+        t.Errorf("string has wrong value. got=%q", str.Value)
+    }
+}
+
+func TestEvalStringExpression(t *testing.T) {
+    tests := []struct {
+        input string
+        expected string
+    }{
+        {`"hello" + " " + "world"`, "hello world"},
+    }
+
+    for _, tt := range tests {
+        evaluated := testEval(tt.input)
+        testStringObject(t, evaluated, tt.expected)
+    }
+}
+
+func testStringObject(t *testing.T, obj object.Object, expected string) bool {
+    result, ok := obj.(*object.String)
+    if !ok {
+        t.Errorf("object is not Integer. got=%T (%+v)", obj, obj)
+        return false
+    }
+
+    if result.Value != expected {
+        t.Errorf("object has wrong value. got=%q, want=%q", result.Value, expected)
+        return false
+    }
+
+    return true
 }
