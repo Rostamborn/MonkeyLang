@@ -31,6 +31,7 @@ var precedences = map[token.TokenType]int {
     token.ASTERISK: PRODUCT,
     token.SLASH: PRODUCT,
     token.LPAREN: CALL,
+    token.LBRACKET: INDEX,
 }
 
 type (
@@ -65,6 +66,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
     p.registerPrefix(token.IF, p.parseIfExpression)
     p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
     p.registerPrefix(token.STRING, p.parseStringLiteral)
+    p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
     p.infixParseFuncs = make(map[token.TokenType]infixParseFunc)
     p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -76,6 +78,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
     p.registerInfix(token.LT, p.parseInfixExpression)
     p.registerInfix(token.GT, p.parseInfixExpression)
     p.registerInfix(token.LPAREN, p.parseCallExpression)
+    p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 
     return p
 }
@@ -368,7 +371,7 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 
     for p.peekTokenIs(token.COMMA) {
         p.nextToken()
-        p.nextToken() // we do it twice because we want to skip the comma and the previous ident
+        p.nextToken() // we do it twice because we want to skip the previous ident and comma
 
         ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
         idents = append(idents, ident)
@@ -383,35 +386,56 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
     expression := &ast.CallExpression{Token: p.curToken, Function: function}
-    expression.Arguments = p.parseCallArguments()
+    expression.Arguments = p.parseExpressionList(token.RPAREN)
 
     return expression
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression {
-    args := make([]ast.Expression, 0)
+func (p *Parser) parseArrayLiteral() ast.Expression {
+    array := &ast.ArrayLiteral{Token: p.curToken}
+    array.Elements = p.parseExpressionList(token.RBRACKET)
 
-    if p.peekTokenIs(token.RPAREN) {
-        p.nextToken()
-        return args
-    }
+    return array
+}
 
-    p.nextToken() // we were on LPAREN, now we are on IDENT
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+    expression := &ast.IndexExpression{Token: p.curToken, Left: left}
 
-    args = append(args, p.parseExpression(LOWEST))
+    p.nextToken()
 
-    for p.peekTokenIs(token.COMMA) {
-        p.nextToken()
-        p.nextToken() // we do it twice because we want to skip the comma and the previous arg
+    expression.Index = p.parseExpression(LOWEST)
 
-        args = append(args, p.parseExpression(LOWEST))
-    }
-
-    if !p.expectPeek(token.RPAREN) {
+    if !p.expectPeek(token.RBRACKET) {
         return nil
     }
 
-    return args
+    return expression
+}
+
+func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
+    list := make([]ast.Expression, 0)
+
+    if p.peekTokenIs(end) {
+        p.nextToken()
+        return list
+    }
+
+    p.nextToken() // we were on LBRACKET, now we are on item
+
+    list = append(list, p.parseExpression(LOWEST))
+
+    for p.peekTokenIs(token.COMMA) {
+        p.nextToken()
+        p.nextToken() // we do it twice because we want to skip the previous item and comma
+
+        list = append(list, p.parseExpression(LOWEST))
+    }
+
+    if !p.expectPeek(end) {
+        return nil
+    }
+
+    return list
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
