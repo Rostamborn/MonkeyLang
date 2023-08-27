@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"monkey/ast"
 	"strings"
+    "hash/fnv"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
     FUNCTION_OBJ = "FUNCTION"
     BUILTIN_OBJ = "BUILTIN"
     ARRAY_OBJ = "ARRAY"
+    HASHMAP_OBJ = "HASHMAP"
 )
 
 type ObjectType string
@@ -26,6 +28,10 @@ type BuiltinFunction func(args ...Object) Object
 type Object interface {
     Type() ObjectType
     Inspect() string
+}
+
+type Hashable interface {
+    HashKey() HashKey
 }
 
 type Integer struct {
@@ -158,6 +164,63 @@ func (ao *Array) Inspect() string {
     out.WriteString("[")
     out.WriteString(strings.Join(elements, ", "))
     out.WriteString("]")
+
+    return out.String()
+}
+
+type HashKey struct {
+    Type ObjectType
+    Value uint64
+}
+
+func (b *Boolean) HashKey() HashKey {
+    var value uint64
+
+    if b.Value {
+        value = 1
+    } else {
+        value = 0
+    }
+
+    return HashKey{Type: b.Type(), Value: value}
+}
+
+func (i *Integer) HashKey() HashKey {
+    return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+func (s *String) HashKey() HashKey {
+    h := fnv.New64a()
+    h.Write([]byte(s.Value))
+
+    return HashKey{Type: s.Type(), Value: h.Sum64()}
+}
+
+
+type HashPair struct { // we use this for the Inspect method of HashMap
+    Key Object
+    Value Object
+}
+
+type HashMap struct {
+    Pairs map[HashKey]HashPair
+}
+
+func (hm *HashMap) Type() ObjectType {
+    return HASHMAP_OBJ
+}
+
+func (hm *HashMap) Inspect() string {
+    var out bytes.Buffer
+
+    pairs := []string{}
+    for _, pair := range hm.Pairs { // the only usage of HashPair.Key
+        pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
+    }
+
+    out.WriteString("{")
+    out.WriteString(strings.Join(pairs, ", "))
+    out.WriteString("}")
 
     return out.String()
 }
