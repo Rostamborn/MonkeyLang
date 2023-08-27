@@ -14,6 +14,8 @@ var builtins = map[string]*object.Builtin{
                 return &object.Integer{Value: int64(len(arg.Value))}
             case *object.Array:
                 return &object.Integer{Value: int64(len(arg.Elements))}
+            case *object.HashMap:
+                return &object.Integer{Value: int64(len(arg.Pairs))}
             default:
                 return newError("argument to `len` not supported, got %s", args[0].Type())
             }
@@ -112,6 +114,14 @@ var builtins = map[string]*object.Builtin{
             arr.Elements = append(arr.Elements[:idx], append([]object.Object{args[2]}, arr.Elements[idx:]...)...)
 
             return arr
+        },
+    },
+    "puts": {
+        Fn: func(args ...object.Object) object.Object {
+            for _, arg := range args {
+                println(arg.Inspect())
+            }
+            return NULL
         },
     },
 }
