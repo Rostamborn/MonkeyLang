@@ -4,25 +4,31 @@
 This is a language mostly based on the fantastic book 
 [Writing An Interpreter In Go](https://interpreterbook.com/). 
 I do this for educational purposes so I can build my own stuff 
-from ground up later.
+from ground up later. 
+I've implemented the language using [Go](https://go.dev/) and [Odin](http://odin-lang.org/)(still in development) programming languages. 
 
 ## Installation
 
 simply clone the repo and: 
 ```sh
-cd MonkeyLang
+cd MonkeyLang/Go
 go run .
 ```
 by doing this, you will run the REPL(Interactive mode) 
 
 
-Warning: This is in early development, so don't expect much 
+Warning: The above code works for Go. If you want to try out 
+the Odin version: 
+```sh
+cd MonkeyLang/Odin
+odin run .
+```
 
 
 ## Features
 the language is mostly gonna be based on the book, but shall 
-also include more features like support for else-if expressions, other types of numbers, 
-support for unicode and etc. 
+also include more features like support for else-if expressions. 
+The Odin version must have a dedicated GC(garbage collector).
 
 
 ## Structure
@@ -54,9 +60,25 @@ Functions have their own environments that are the extension of the environment 
 in. That is precisely the reason why closures are possible.
 
 
-## Current State
+#### GC
+This is a feature exclusive to the Odin version as it is a manual memory management language. 
+The Go version takes care of deallocation thanks to the Go's GC. 
+We basically have to take care of the objects created in memory through monkey scripts and make sure 
+we avoid memory leaks and avoid crashes and undefined behaviour. 
+
+
+## Current State for Go version
 | Feature | State |
 | ------- | -------|
 | Lexer | working state |
 | Parser | working state |
 | Eval/Semantics | working state |
+
+
+## Current State for Odin version
+| Feature | State |
+| ------- | -------|
+| Lexer | working state |
+| Parser | not developed yet |
+| Eval/Semantics | not developed yet |
+| Garbage Collection | not developed yet |
