@@ -53,10 +53,10 @@ Token :: struct {
     literal: string,
 }
 
-new_token :: proc(token_type: TokenType, ch: byte) -> Token {
-    // buf := make([]u8, 1)
-    // buf[0] = ch
-    return Token{type=token_type, literal=transmute(string)[]byte{ch}}
+new_token :: proc(token_type: TokenType, ch: byte, allocator := context.temp_allocator) -> Token {
+    buf := make([]u8, 1)
+    buf[0] = ch
+    return Token{type=token_type, literal=transmute(string)buf}
 }
 
 lookup_identifier :: proc(ind: string) -> TokenType {

@@ -2,17 +2,20 @@ package lexer
 
 import "../token"
 import "core:fmt"
+import "core:mem"
 
 Lexer :: struct {
     input: string,
     pos: int,
     next_pos: int,
     ch: byte,
+    allocator: mem.Allocator,
 }
 
-new_lexer :: proc(input: string) -> ^Lexer {
-    lex := new(Lexer)
+new_lexer :: proc(input: string, allocator:=context.temp_allocator) -> ^Lexer {
+    lex := new(Lexer, allocator)
     lex.input = input
+    lex.allocator = allocator
     next_token(lex)
 
     return lex
