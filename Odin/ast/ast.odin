@@ -2,8 +2,11 @@ package ast
 
 import "../token"
 import "core:bytes"
+import "core:strconv"
+import "core:strings"
 
 Any_Node :: union {
+    ^Program,
     // Stmts
     ^Expr_Stmt,
     ^Let_Stmt,
@@ -13,7 +16,6 @@ Any_Node :: union {
     // Exprs
     ^Ident,
     ^Int_Literal,
-    ^Float_Literal,
     ^String_Literal,
     ^Bool_Literal,
     ^Prefix_Expr,
@@ -36,7 +38,6 @@ Any_Stmt :: union {
 Any_Expr :: union {
     ^Ident,
     ^Int_Literal,
-    ^Float_Literal,
     ^String_Literal,
     ^Bool_Literal,
     ^Prefix_Expr,
@@ -75,6 +76,7 @@ Stmt_inst :: struct($T: typeid) {
 // Program
 
 Program :: struct {
+    using node: Node,
     statemetns: []Stmt,
 }
 
@@ -100,7 +102,7 @@ Return_Stmt :: struct {
 
 Block_Stmt :: struct {
     using node: Stmt,
-    token: token.Token,
+    token: token.Token, // { token
     statements: []^Stmt,
 }
 
@@ -116,12 +118,6 @@ Int_Literal :: struct {
     using node: Expr,
     token: token.Token,
     value: int,
-}
-
-Float_Literal :: struct {
-    using node: Expr,
-    token: token.Token,
-    value: f64,
 }
 
 String_Literal :: struct {
@@ -184,7 +180,7 @@ Index_Expr :: struct {
     using node: Expr,
     token: token.Token,
     left: ^Expr, // Ident or Array_Expr
-    Index: ^Expr,
+    index: ^Expr,
 }
 
 Hash_Expr :: struct {
@@ -195,30 +191,28 @@ Hash_Expr :: struct {
 
 // String
 
-to_string :: proc {
-    program_string,
-
-    // Stmts
-    expr_stmt_string,
-    let_stmt_string,
-    return_stmt_string,
-    block_stmt_string,
-
-    // Exprs
-    ident_string,
-    int_literal_string,
-    float_literal_string,
-    string_literal_string,
-    bool_literal_string,
-    prefix_expr_string,
-    infix_expr_string,
-    if_expr_string,
-    function_expr_string,
-    call_expr_string,
-    array_expr_string,
-    index_expr_string,
-    hash_expr_string,
-
+to_string :: proc(node: Node) -> string {
+    switch v in node.derived {
+        case ^Program: return program_string(v)
+        case ^Expr_Stmt: return expr_stmt_string(v)
+        case ^Let_Stmt: return let_stmt_string(v)
+        case ^Return_Stmt: return return_stmt_string(v)
+        case ^Block_Stmt: return block_stmt_string(v)
+        case ^Ident: return ident_string(v)
+        case ^Int_Literal: return int_literal_string(v)
+        case ^String_Literal: return string_literal_string(v)
+        case ^Bool_Literal: return bool_literal_string(v)
+        case ^Prefix_Expr: return prefix_expr_string(v)
+        case ^Infix_Expr: return infix_expr_string(v)
+        case ^If_Expr: return if_expr_string(v)
+        case ^Function_Literal: return function_expr_string(v)
+        case ^Call_Expr: return call_expr_string(v)
+        case ^Array_Literal: return array_expr_string(v)
+        case ^Index_Expr: return index_expr_string(v)
+        case ^Hash_Expr: return hash_expr_string(v)
+        case:
+            panic("unknown node type")
+    }
 }
 
 program_string :: proc(p: ^Program) -> string {
@@ -246,7 +240,8 @@ expr_stmt_string :: proc(s: ^Expr_Stmt) -> string {
 let_stmt_string :: proc(s: ^Let_Stmt) -> string {
     out: bytes.Buffer
 
-    bytes.buffer_write(&out, transmute([]u8)tok_literal(s.token)+" ")
+    bytes.buffer_write(&out, transmute([]u8)tok_literal(s.token))
+    bytes.buffer_write(&out, transmute([]u8)string(" "))
     bytes.buffer_write(&out, transmute([]u8)to_string(s.name))
     bytes.buffer_write(&out, transmute([]u8)string(" = ")) // we must convert the untyped string literal to typed string
 
@@ -259,10 +254,11 @@ let_stmt_string :: proc(s: ^Let_Stmt) -> string {
     return bytes.buffer_to_string(&out)
 }
 
-return_stmt_sting :: proc(s: ^Return_Stmt) -> string {
+return_stmt_string :: proc(s: ^Return_Stmt) -> string {
     out: bytes.Buffer
 
-    bytes.buffer_write(&out, transmute([]u8)tok_literal(s.token) + " ")
+    bytes.buffer_write(&out, transmute([]u8)tok_literal(s.token))
+    bytes.buffer_write(&out, transmute([]u8)string(" "))
 
     if s.return_value != nil {
         bytes.buffer_write(&out, transmute([]u8)to_string(s.return_value))
@@ -289,4 +285,162 @@ ident_string :: proc(e: ^Ident) -> string {
     out: bytes.Buffer
 
     bytes.buffer_write(&out, transmute([]u8)e.value)
+
+    return bytes.buffer_to_string(&out)
+}
+
+int_literal_string :: proc(e: ^Int_Literal) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)e.token.literal)
+
+    return bytes.buffer_to_string(&out)
+}
+
+string_literal_string :: proc(e: ^String_Literal) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)string("\""))
+    bytes.buffer_write(&out, transmute([]u8)e.value)
+    bytes.buffer_write(&out, transmute([]u8)string("\""))
+
+    return bytes.buffer_to_string(&out)
+}
+
+bool_literal_string :: proc(e: ^Bool_Literal) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)e.token.literal)
+
+    return bytes.buffer_to_string(&out)
+}
+
+
+prefix_expr_string :: proc(e: ^Prefix_Expr) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)e.operator)
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.right))
+    bytes.buffer_write(&out, transmute([]u8)string(")"))
+
+    return bytes.buffer_to_string(&out)
+}
+
+infix_expr_string :: proc(e: ^Infix_Expr) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.left))
+    bytes.buffer_write(&out, transmute([]u8)string(" "))
+    bytes.buffer_write(&out, transmute([]u8)e.operator)
+    bytes.buffer_write(&out, transmute([]u8)string(" "))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.right))
+    bytes.buffer_write(&out, transmute([]u8)string(")"))
+
+    return bytes.buffer_to_string(&out)
+}
+
+if_expr_string :: proc(e: ^If_Expr) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)e.token.literal)
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.condition))
+    bytes.buffer_write(&out, transmute([]u8)string(") "))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.consequence))
+
+    for alt in e.alternatives {
+        bytes.buffer_write(&out, transmute([]u8)string("else if "))
+        bytes.buffer_write(&out, transmute([]u8)if_expr_string(alt))
+    }
+
+    if e.default != nil {
+        bytes.buffer_write(&out, transmute([]u8)string("else "))
+        bytes.buffer_write(&out, transmute([]u8)to_string(e.default))
+    }
+
+    return bytes.buffer_to_string(&out)
+}
+
+function_expr_string :: proc(e: ^Function_Literal) -> string {
+    out: bytes.Buffer
+
+    params: [dynamic]string
+    for p in e.params {
+        append(&params, to_string(p))
+    }
+    res := strings.join(params[:], ", ", context.temp_allocator)
+    defer delete(res, context.temp_allocator)
+    bytes.buffer_write(&out, transmute([]u8)string(e.token.literal))
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)res)
+    bytes.buffer_write(&out, transmute([]u8)string(") "))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.body))
+
+    return bytes.buffer_to_string(&out)
+}
+
+call_expr_string :: proc(e: ^Call_Expr) -> string {
+    out: bytes.Buffer
+
+    args: [dynamic]string
+    for a in e.args {
+        append(&args, to_string(a))
+    }
+    res := strings.join(args[:], ", ", context.temp_allocator)
+    defer delete(res, context.temp_allocator)
+
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.func))
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)res)
+    bytes.buffer_write(&out, transmute([]u8)string(")"))
+
+    return bytes.buffer_to_string(&out)
+}
+
+array_expr_string :: proc(e: ^Array_Literal) -> string {
+    out: bytes.Buffer
+
+    elems: [dynamic]string
+    for elem in e.elems {
+        append(&elems, to_string(elem))
+    }
+    res := strings.join(elems[:], ", ", context.temp_allocator)
+    defer delete(res, context.temp_allocator)
+
+    bytes.buffer_write(&out, transmute([]u8)string("["))
+    bytes.buffer_write(&out, transmute([]u8)res)
+    bytes.buffer_write(&out, transmute([]u8)string("]"))
+
+    return bytes.buffer_to_string(&out)
+}
+
+index_expr_string :: proc(e: ^Index_Expr) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)string("("))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.left))
+    bytes.buffer_write(&out, transmute([]u8)string("["))
+    bytes.buffer_write(&out, transmute([]u8)to_string(e.index))
+    bytes.buffer_write(&out, transmute([]u8)string("])"))
+
+    return bytes.buffer_to_string(&out)
+}
+
+hash_expr_string :: proc(e: ^Hash_Expr) -> string {
+    out: bytes.Buffer
+
+    bytes.buffer_write(&out, transmute([]u8)string("{"))
+    for k, v in e.pairs {
+        key := to_string(k)
+        value := to_string(v)
+        bytes.buffer_write(&out, transmute([]u8)key)
+        bytes.buffer_write(&out, transmute([]u8)string(":"))
+        bytes.buffer_write(&out, transmute([]u8)value)
+        bytes.buffer_write(&out, transmute([]u8)string(", "))
+    }
+    bytes.buffer_write(&out, transmute([]u8)string("}"))
+
+    return bytes.buffer_to_string(&out)
 }
