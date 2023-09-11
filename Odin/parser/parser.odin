@@ -20,3 +20,5 @@ p_next_token :: proc(p: ^Parser) {
     p.cur_token = p.next_token
     p.next_token = lexer.next_token(p.lex)
 }
+
+parse_program :: proc(p: ^Parser) -> 
