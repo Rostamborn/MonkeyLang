@@ -26,6 +26,6 @@ start :: proc(stream: io.Stream) {
             tok = lexer.next_token(lex)
         }
         fmt.println()
-        free_all()
+        free_all(context.temp_allocator)
     }
 }

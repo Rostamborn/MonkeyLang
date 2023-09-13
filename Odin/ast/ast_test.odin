@@ -18,10 +18,12 @@ test_string :: proc(t: ^testing.T) {
     let.token = token.Token{type= token.LET, literal= "let"}
     let.name = name_ident
     let.value = value_ident
-    program.statements = []^Stmt{let}
+    program.statements = [dynamic]^Stmt{let}
 
 
     if to_string(program) != "let myVar = anotherVar;" {
         testing.errorf(t, "program.String() wrong. got=%q", to_string(program))
     }
+
+    free_all(context.temp_allocator)
 }

@@ -9,7 +9,7 @@ import "core:intrinsics"
 
 has_field :: intrinsics.type_has_field
 
-new_node :: proc($T: typeid) -> ^T where has_field(T, "derived") {
+new_node :: proc($T: typeid, allocator := context.temp_allocator) -> ^T where has_field(T, "derived") {
     node := new(T)
     node.derived = node
 
@@ -91,7 +91,7 @@ Stmt :: struct {
 
 Program :: struct {
     using node: Node,
-    statements: []^Stmt,
+    statements: [dynamic]^Stmt,
 }
 
 // Stmts
