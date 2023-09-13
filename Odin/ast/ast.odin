@@ -4,6 +4,17 @@ import "../token"
 import "core:bytes"
 import "core:strconv"
 import "core:strings"
+import "core:fmt"
+import "core:intrinsics"
+
+has_field :: intrinsics.type_has_field
+
+new_node :: proc($T: typeid) -> ^T where has_field(T, "derived") {
+    node := new(T)
+    node.derived = node
+
+    return node
+}
 
 Any_Node :: union {
     ^Program,
@@ -28,28 +39,27 @@ Any_Node :: union {
     ^Hash_Expr,
 }
 
-Any_Stmt :: union {
-    ^Expr_Stmt,
-    ^Let_Stmt,
-    ^Return_Stmt,
-    ^Block_Stmt,
-}
-
-Any_Expr :: union {
-    ^Ident,
-    ^Int_Literal,
-    ^String_Literal,
-    ^Bool_Literal,
-    ^Prefix_Expr,
-    ^Infix_Expr,
-    ^If_Expr,
-    ^Function_Literal,
-    ^Call_Expr,
-    ^Array_Literal,
-    ^Index_Expr,
-    ^Hash_Expr,
-}
-
+// Any_Stmt :: union {
+//     ^Expr_Stmt,
+//     ^Let_Stmt,
+//     ^Return_Stmt,
+//     ^Block_Stmt,
+// }
+//
+// Any_Expr :: union {
+//     ^Ident,
+//     ^Int_Literal,
+//     ^String_Literal,
+//     ^Bool_Literal,
+//     ^Prefix_Expr,
+//     ^Infix_Expr,
+//     ^If_Expr,
+//     ^Function_Literal,
+//     ^Call_Expr,
+//     ^Array_Literal,
+//     ^Index_Expr,
+//     ^Hash_Expr,
+// }
 
 Node :: struct {
     derived: Any_Node,
@@ -57,27 +67,31 @@ Node :: struct {
 
 Expr :: struct {
     using expr_base: Node,
-    derived_expr: Any_Expr,
+    // derived_expr: Any_Node,
 }
 
 Stmt :: struct {
     using expr_base: Node,
-    derived_stmt: Any_Stmt,
+    // derived_stmt: Any_Node,
 }
 
-Expr_inst :: struct($T: typeid) {
-    using expr: ^T,
-}
-
-Stmt_inst :: struct($T: typeid) {
-    using stmt: ^T,
-}
+// Node_inst :: struct($T: typeid) {
+//     using node: ^T,
+// }
+//
+// Expr_inst :: struct($T: typeid) {
+//     using expr: ^T,
+// }
+//
+// Stmt_inst :: struct($T: typeid) {
+//     using stmt: ^T,
+// }
 
 // Program
 
 Program :: struct {
     using node: Node,
-    statemetns: []Stmt,
+    statements: []^Stmt,
 }
 
 // Stmts
@@ -189,8 +203,7 @@ Hash_Expr :: struct {
     pairs: map[^Expr]^Expr,
 }
 
-// String
-
+// always use this proc to turn the AST into a string
 to_string :: proc(node: Node) -> string {
     switch v in node.derived {
         case ^Program: return program_string(v)
@@ -218,8 +231,8 @@ to_string :: proc(node: Node) -> string {
 program_string :: proc(p: ^Program) -> string {
     out: bytes.Buffer
 
-    for str in p.statemetns {
-        bytes.buffer_write(&out, transmute([]u8)to_string(p))
+    for stmt in p.statements {
+        bytes.buffer_write(&out, transmute([]u8)to_string(stmt))
     }
 
     return bytes.buffer_to_string(&out)
@@ -443,4 +456,8 @@ hash_expr_string :: proc(e: ^Hash_Expr) -> string {
     bytes.buffer_write(&out, transmute([]u8)string("}"))
 
     return bytes.buffer_to_string(&out)
+}
+
+tok_literal :: proc(t: token.Token) -> string {
+    return t.literal
 }

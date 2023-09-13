@@ -120,6 +120,24 @@ TestNextToken :: proc(t: ^testing.T) {
 		{token.EOF, ""},
     }
 
+    // input := `let =)(){+-/}  `
+    // tests := []struct{
+    //     expected_type: token.TokenType,
+    //     expected_literal: string,
+    // }{
+    //     {token.LET, "let"},
+    //     {token.ASSIGN, "="},
+    //     {token.RPAREN, ")"},
+    //     {token.LPAREN, "("},
+    //     {token.RPAREN, ")"},
+    //     {token.LBRACE, "{"},
+    //     {token.PLUS, "+"},
+    //     {token.MINUS, "-"},
+    //     {token.SLASH, "/"},
+    //     {token.RBRACE, "}"},
+    //     {token.EOF, ""},
+    // }
+
     lex := new_lexer(input)
 
     for tt, i in tests {
