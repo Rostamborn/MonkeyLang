@@ -98,6 +98,7 @@ Program :: struct {
 
 Expr_Stmt :: struct {
     using node: Stmt,
+    token: token.Token,
     expr: ^Expr,
 }
 
@@ -117,7 +118,7 @@ Return_Stmt :: struct {
 Block_Stmt :: struct {
     using node: Stmt,
     token: token.Token, // { token
-    statements: []^Stmt,
+    statements: [dynamic]^Stmt,
 }
 
 // Exprs
@@ -166,14 +167,14 @@ If_Expr :: struct {
     token: token.Token,
     condition: ^Expr,
     consequence: ^Block_Stmt,
-    alternatives: []^If_Expr,
+    alternatives: [dynamic]^If_Expr,
     default: ^Block_Stmt,
 }
 
 Function_Literal :: struct {
     using node: Expr,
     token: token.Token,
-    params: []^Ident,
+    params: [dynamic]^Ident,
     body: ^Block_Stmt,
 }
 
@@ -181,13 +182,13 @@ Call_Expr :: struct {
     using node: Expr,
     token: token.Token,
     func: ^Expr, // Ident or Function_Expr
-    args: []^Expr,
+    args: [dynamic]^Expr,
 }
 
 Array_Literal :: struct {
     using node: Expr,
     token: token.Token,
-    elems: []^Expr,
+    elems: [dynamic]^Expr,
 }
 
 Index_Expr :: struct {
