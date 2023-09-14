@@ -38,7 +38,7 @@ Parser :: struct {
     curr_token: token.Token,
     next_token: token.Token,
 
-    errors: [dynamic] string,
+    errors: [dynamic]string,
 
     prefix_parse_funcs: map[token.TokenType]prefix_parse_func,
     infix_parse_funcs: map[token.TokenType]infix_parse_func,
@@ -48,8 +48,10 @@ new_parser :: proc(lex: ^lexer.Lexer) -> ^Parser {
     p := new(Parser, context.temp_allocator)
     p.lex = lex
     p.errors = make([dynamic]string, context.temp_allocator)
+    p_next_token(p)
+    p_next_token(p)
     
-    p.prefix_parse_funcs = make(map[token.TokenType]prefix_parse_func)
+    p.prefix_parse_funcs = make(map[token.TokenType]prefix_parse_func, 2, context.temp_allocator)
     p.prefix_parse_funcs[token.IDENT] = parse_ident
     p.prefix_parse_funcs[token.INT] = parse_int_literal
     p.prefix_parse_funcs[token.STRING] = parse_string_literal
@@ -63,7 +65,7 @@ new_parser :: proc(lex: ^lexer.Lexer) -> ^Parser {
     p.prefix_parse_funcs[token.LBRACKET] = parse_array_literal
     p.prefix_parse_funcs[token.LBRACE] = parse_hash_expr
 
-    p.infix_parse_funcs = make(map[token.TokenType]infix_parse_func)
+    p.infix_parse_funcs = make(map[token.TokenType]infix_parse_func, 2, context.temp_allocator)
     p.infix_parse_funcs[token.PLUS] = parse_infix_expr
     p.infix_parse_funcs[token.MINUS] = parse_infix_expr
     p.infix_parse_funcs[token.ASTERISK] = parse_infix_expr
@@ -86,7 +88,7 @@ p_next_token :: proc(p: ^Parser) {
 }
 
 p_peek_travarse :: proc(p: ^Parser, t: token.TokenType) -> bool {
-    if p.curr_token.type == t {
+    if p.next_token.type == t {
         p_next_token(p)
         return true
     } else {
@@ -137,12 +139,13 @@ parse_program :: proc(p: ^Parser) -> ^ast.Program {
     program.statements = make([dynamic]^ast.Stmt, context.temp_allocator)
 
     for p.curr_token.type != token.EOF {
+        // fmt.println(p.curr_token)
         stmt := parse_stmt(p) 
         if stmt != nil {
             append(&program.statements, stmt)
         }
         p_next_token(p) // we always stop before a new statement,
-        }               // so we must go to the next token.
+    }               // so we must go to the next token.
 
     return program
 }
@@ -249,7 +252,7 @@ parse_expr :: proc(p: ^Parser, precedenc: prec) -> ^ast.Expr {
         return nil
     }
 
-    left_expr := prefix()
+    left_expr := prefix(p)
 
     for precedenc < next_precedence(p) {
         infix, ok := p.infix_parse_funcs[p.next_token.type]
