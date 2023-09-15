@@ -98,8 +98,7 @@ p_peek_travarse :: proc(p: ^Parser, t: token.TokenType) -> bool {
 }
 
 p_peek_error :: proc(p: ^Parser, t: token.TokenType) {
-    buf: []u8
-    message := fmt.bprintf(buf, "expected next token to be {%s}, got {%s} instead",
+    message := fmt.tprintf("expected next token to be (%s), got (%s) instead",
     t, p.next_token.type)
     append(&p.errors, message)
 }
@@ -124,15 +123,7 @@ next_precedence :: proc(p: ^Parser) -> prec {
     return prec.LOWEST
 }
 
-// register_prefix_func :: proc(p: ^Parser, t: token.TokenType, func: prefix_parse_func) {
-//     p.prefix_parse_funcs[t] = func
-// }
-//
-// register_infix_func :: proc(p: ^Parser, t: token.TokenType, func: infix_parse_func) {
-//     p.infix_parse_funcs[t] = func
-// }
-
-// parse functions
+// PARSING
 
 parse_program :: proc(p: ^Parser) -> ^ast.Program {
     program := ast.new_node(ast.Program) // default allocator is "context.temp_allocator"
@@ -167,7 +158,7 @@ parse_expr_stmt :: proc(p: ^Parser) -> ^ast.Stmt {
     expr := parse_expr(p, prec.LOWEST)
     expr_stmt.expr = expr
 
-    if p_peek_travarse(p, token.SEMICOLON) {
+    if p.next_token.type == token.SEMICOLON {
         p_next_token(p)
     }
 
@@ -199,7 +190,7 @@ parse_let_stmt :: proc(p: ^Parser) -> ^ast.Stmt {
     let.value = value
 
     // Optional semicolon
-    if p_peek_travarse(p, token.SEMICOLON) {
+    if p.next_token.type == token.SEMICOLON {
         p_next_token(p)
     }
 
@@ -216,7 +207,7 @@ parse_return_stmt :: proc(p: ^Parser) -> ^ast.Return_Stmt {
     // ret_value := ast.new_node(ast.Expr)
     ret.return_value = parse_expr(p, prec.LOWEST)
 
-    if p_peek_travarse(p, token.SEMICOLON) {
+    if p.next_token.type == token.SEMICOLON {
         p_next_token(p)
     }
 
@@ -477,10 +468,12 @@ parse_array_literal :: proc(p: ^Parser) -> ^ast.Expr {
 parse_expr_list :: proc(p: ^Parser, end: token.TokenType) -> [dynamic]^ast.Expr {
     list := make([dynamic]^ast.Expr, context.temp_allocator)
     
-    p_next_token(p)
-    if p.curr_token.type == end {
+    if p.next_token.type == end {
+        p_next_token(p)
         return list
     }
+
+    p_next_token(p)
 
     append(&list, parse_expr(p, prec.LOWEST))
 
@@ -500,9 +493,12 @@ parse_expr_list :: proc(p: ^Parser, end: token.TokenType) -> [dynamic]^ast.Expr 
 
 parse_index_expr :: proc(p: ^Parser, left: ^ast.Expr) -> ^ast.Expr {
     expr := ast.new_node(ast.Index_Expr)
-    expr.token = p.curr_token
     expr.left = left
-    expr.index = parse_expr(p, prec.INDEX)
+    expr.token = p.curr_token
+
+    p_next_token(p)
+    
+    expr.index = parse_expr(p, prec.LOWEST)
 
     if !p_peek_travarse(p, token.RBRACKET) {
         return nil
@@ -543,3 +539,5 @@ parse_hash_expr :: proc(p: ^Parser) -> ^ast.Expr {
 
     return expr
 }
+
+
