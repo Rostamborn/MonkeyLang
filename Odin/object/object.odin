@@ -226,38 +226,27 @@ hash_map_inspect :: proc(obj: ^Hash_Map) -> string {
 // Hash Helpers
 
 // function overloading is not an option since we need to unwrap obj.derived
-hash_key :: proc(obj: ^Object, allocator := context.allocator) -> Hash_Key {
+hash_key :: proc(obj: ^Object) -> Hash_Key {
     #partial switch v in obj.derived {
-        case ^Integer: return hash_key_int(v, allocator)
-        case ^String: return hash_key_str(v, allocator)
-        case ^Boolean: return hash_key_bool(v, allocator)
+        case ^Integer: return hash_key_int(v)
+        case ^String: return hash_key_str(v)
+        case ^Boolean: return hash_key_bool(v)
         case: return Hash_Key{.NULL, 0}
     }
 }
 
-hash_key_int :: proc(obj: ^Integer, allocator: mem.Allocator) -> Hash_Key {
-    // hk := new(Hash_Key, allocator)
-    // hk.type = obj_type(obj)
-    // hk.value = u64(obj.value)
-
+hash_key_int :: proc(obj: ^Integer) -> Hash_Key {
     return Hash_Key{obj_type(obj), u64(obj.value)}
 }
 
-hash_key_str :: proc(obj: ^String, allocator: mem.Allocator) -> Hash_Key {
-    // buf := make([]u8, 64,allocator)
-    // defer delete(buf, allocator)
+hash_key_str :: proc(obj: ^String) -> Hash_Key {
     buf := transmute([]u8)obj.value
     h := hash.fnv64a(buf)
-    // hk := new(Hash_Key, allocator)
-    // hk.type = obj_type(obj)
-    // hk.value = h
 
     return Hash_Key{obj_type(obj), h}
 }
 
-hash_key_bool :: proc(obj: ^Boolean, allocator: mem.Allocator) -> Hash_Key {
-    // hk := new(Hash_Key, allocator)
-    // hk.type = obj_type(obj)
+hash_key_bool :: proc(obj: ^Boolean) -> Hash_Key {
     value: u64
 
     if obj.value {
@@ -265,7 +254,6 @@ hash_key_bool :: proc(obj: ^Boolean, allocator: mem.Allocator) -> Hash_Key {
     } else {
         value = 0
     }
-    // hk.value = value
 
     return Hash_Key{obj_type(obj), value}
 }

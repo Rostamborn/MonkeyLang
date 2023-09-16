@@ -79,6 +79,6 @@ we avoid memory leaks and avoid crashes and undefined behaviour.
 | Feature | State |
 | ------- | -------|
 | Lexer | working state |
-| Parser | not developed yet |
+| Parser | working state |
 | Eval/Semantics | not developed yet |
 | Garbage Collection | not developed yet |

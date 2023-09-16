@@ -111,8 +111,6 @@ func (p *Parser) parseStatement() ast.Statement {
     }
 }
 
-// TODO: if you don't put semicolon, nothing happens!
-// the computer just gets hot and loud
 func (p *Parser) parseLetStatement() *ast.LetStatement {
     stmt := &ast.LetStatement{Token: p.curToken}
 
@@ -130,6 +128,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
     stmt.Value = p.parseExpression(LOWEST)
 
+    // Optional semicolons
     if p.peekTokenIs(token.SEMICOLON) {
         p.nextToken()
     }
