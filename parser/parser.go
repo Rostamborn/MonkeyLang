@@ -171,11 +171,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
     }
     leftExpression := prefix()
 
-    // if p.peekToken.Type == token.LPAREN {
-    //     p.nextToken()
-    // }
-
-    for precedence < p.peekPrecedence() {
+    for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
         infixFunc := p.infixParseFuncs[p.peekToken.Type]
         if infixFunc == nil {
             return leftExpression
