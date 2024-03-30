@@ -47,7 +47,16 @@ type Opcode byte
 // Enum
 const (
     OpConstant Opcode = iota
+    OpPop
     OpAdd
+    OpSub
+    OpMul
+    OpDiv
+    OpTrue
+    OpFalse
+    OpEqual
+    OpNotEqual
+    OpLessThan
 )
 
 type Definition struct {
@@ -57,7 +66,16 @@ type Definition struct {
 
 var definitions = map[Opcode]*Definition{
     OpConstant: {"OpConstant", []int{2}}, // 2-byte long single operand
+    OpPop: {"OpPop", []int{}},
     OpAdd: {"OpAdd", []int{}},
+    OpSub: {"OpSub", []int{}},
+    OpMul: {"OpMul", []int{}},
+    OpDiv: {"OpDiv", []int{}},
+    OpTrue: {"OpTrue", []int{}},
+    OpFalse: {"OpFalse", []int{}},
+    OpEqual: {"OpEqual", []int{}},
+    OpNotEqual: {"OpNotEqual", []int{}},
+    OpLessThan: {"OpLessThan", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

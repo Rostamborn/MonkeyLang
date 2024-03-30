@@ -48,7 +48,7 @@ func Start(in io.Reader, out io.Writer) {
             continue
         }
 
-        stack_top := virt_machine.StackTop()
+        stack_top := virt_machine.LastPopped()
         io.WriteString(out, stack_top.Inspect())
         io.WriteString(out, "\n")
 

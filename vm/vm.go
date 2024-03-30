@@ -7,6 +7,9 @@ import (
 	"monkey/object"
 )
 
+var True = &object.Boolean{Value: true}
+var False = &object.Boolean{Value: false}
+
 const StackSize = 2048
 
 type VM struct {
@@ -26,12 +29,8 @@ func New_VM(bytecode *compiler.Bytecode) *VM {
     }
 }
 
-func (vm *VM) StackTop() object.Object {
-    if vm.sp == 0 {
-        return nil
-    }
-
-    return vm.stack[vm.sp-1]
+func (vm *VM) LastPopped() object.Object {
+    return vm.stack[vm.sp]
 }
 
 func (vm *VM) push(obj object.Object) error {
@@ -67,18 +66,107 @@ func (vm *VM) Run() error {
             if err != nil {
                 return err
             }
-        case code.OpAdd:
-            right := vm.pop()
-            left := vm.pop()
-            if left != nil && right != nil {
-                left_val := left.(*object.Integer)
-                right_val := right.(*object.Integer)
-                vm.push(&object.Integer{Value: left_val.Value + right_val.Value})
-            } else {
-                return fmt.Errorf("unsupported types for operation %d : %s %s", code.OpAdd, left.Type(), right.Type())
+        case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv:
+            err := vm.executeBinaryOperation(op)
+            if err != nil {
+                return err
             }
+        case code.OpFalse:
+            err := vm.push(False)
+            if err != nil {
+                return err
+            }
+        case code.OpTrue:
+            err := vm.push(True)
+            if err != nil {
+                return err
+            }
+        case code.OpEqual, code.OpLessThan, code.OpNotEqual:
+            err := vm.executeComparison(op)
+            if err != nil {
+                return err
+            }
+        case code.OpPop:
+            vm.pop()
         }
     }
 
     return nil;
+}
+
+func (vm *VM) executeBinaryOperation(op code.Opcode) error {
+    right := vm.pop()
+    left := vm.pop()
+
+    left_type := left.Type()
+    right_type := right.Type()
+
+    switch {
+    case left_type == object.INTEGER_OBJ && right_type == object.INTEGER_OBJ:
+        return vm.executeBinaryIntegerOperation(op, left, right)
+    }
+
+    return fmt.Errorf("unsupported types for binary operation: %s %s", left_type, right_type)
+}
+
+func (vm *VM) executeBinaryIntegerOperation(op code.Opcode, left, right object.Object) error {
+    left_val := left.(*object.Integer).Value
+    right_val := right.(*object.Integer).Value
+    var result int64
+
+    switch op {
+    case code.OpAdd:
+        result = left_val + right_val
+    case code.OpSub:
+        result = left_val - right_val
+    case code.OpMul:
+        result = left_val * right_val
+    case code.OpDiv:
+        result = left_val / right_val
+    default:
+        return fmt.Errorf("unkown integer operator: %d", op)
+    }
+
+    return vm.push(&object.Integer{Value: result})
+}
+
+func (vm *VM) executeComparison(op code.Opcode) error {
+    right := vm.pop()
+    left := vm.pop()
+
+    if left.Type() == object.INTEGER_OBJ || right.Type() == object.INTEGER_OBJ {
+        return vm.executeIntegerComparison(op, left, right)
+    }
+
+    switch op {
+    case code.OpEqual:
+        return vm.push(nativeBoolToBooleanObject(right == left))
+    case code.OpNotEqual:
+        return vm.push(nativeBoolToBooleanObject(right != left))
+    default:
+        return fmt.Errorf("unknown operator: %d (%s %s)", op, left.Type(), right.Type())
+    }
+}
+
+func (vm *VM) executeIntegerComparison(op code.Opcode, left, right object.Object) error {
+    left_val := left.(*object.Integer).Value
+    right_val := right.(*object.Integer).Value
+
+    switch op {
+    case code.OpEqual:
+        return vm.push(nativeBoolToBooleanObject(left_val == right_val))
+    case code.OpNotEqual:
+        return vm.push(nativeBoolToBooleanObject(left_val != right_val))
+    case code.OpLessThan:
+        return vm.push(nativeBoolToBooleanObject(left_val < right_val))
+    default:
+        return fmt.Errorf("unknown operator: %d", op)
+    }
+}
+
+func nativeBoolToBooleanObject(input bool) *object.Boolean {
+    if input {
+        return True
+    }
+    return False
 }
