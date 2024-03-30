@@ -6,15 +6,17 @@ import(
     "io"
     "monkey/lexer"
     "monkey/parser"
-    "monkey/evaluator"
-    "monkey/object"
+    // "monkey/evaluator"
+    // "monkey/object"
+    "monkey/compiler"
+    "monkey/vm"
 )
 
 const PROMPT = "$ "
 
 func Start(in io.Reader, out io.Writer) {
     scanner := bufio.NewScanner(in)
-    env := object.NewEnvironment()
+    // env := object.NewEnvironment()
 
     for {
         fmt.Print(PROMPT)
@@ -32,12 +34,30 @@ func Start(in io.Reader, out io.Writer) {
             continue
         }
 
-        evalueated := evaluator.Eval(program, env)
-        if evalueated != nil {
-            io.WriteString(out, evalueated.Inspect())
-            io.WriteString(out, "\n")
+        comp := compiler.New_Compiler()
+        err := comp.Compile(program)
+        if err != nil {
+            fmt.Fprintf(out, "Compilation failed:\n %s\n", err)
+            continue
         }
 
+        virt_machine := vm.New_VM(comp.Bytecode())
+        err = virt_machine.Run()
+        if err != nil {
+            fmt.Fprintf(out, "Execution failed:\n %s\n", err)
+            continue
+        }
+
+        stack_top := virt_machine.StackTop()
+        io.WriteString(out, stack_top.Inspect())
+        io.WriteString(out, "\n")
+
+        // evalueated := evaluator.Eval(program, env)
+        // if evalueated != nil {
+        //     io.WriteString(out, evalueated.Inspect())
+        //     io.WriteString(out, "\n")
+        // }
+        //
         // io.WriteString(out, program.String())
         // io.WriteString(out, "\n")
         // for tok := lex.NextToken(); tok.Type != token.EOF; tok = lex.NextToken() {

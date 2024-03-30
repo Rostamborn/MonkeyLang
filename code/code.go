@@ -31,11 +31,10 @@ func (ins Instructions) String() string {
 
 func (ins Instructions) instructionsFormat(def *Definition, operands []int) string {
     operandCount := len(def.OperandWidths)
-    if operandCount == 0 {
-        return def.Name
-    }
 
     switch operandCount {
+    case 0:
+        return def.Name
     case 1:
         return fmt.Sprintf("%s %d", def.Name, operands[0])
     }
@@ -48,6 +47,7 @@ type Opcode byte
 // Enum
 const (
     OpConstant Opcode = iota
+    OpAdd
 )
 
 type Definition struct {
@@ -57,6 +57,7 @@ type Definition struct {
 
 var definitions = map[Opcode]*Definition{
     OpConstant: {"OpConstant", []int{2}}, // 2-byte long single operand
+    OpAdd: {"OpAdd", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

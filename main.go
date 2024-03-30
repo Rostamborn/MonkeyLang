@@ -17,7 +17,7 @@ func main() {
     args := os.Args
 
     if len(args) == 2 {
-        file.Run_file("test.monkey")
+        file.Run_file(args[1])
     } else {
         fmt.Printf("Hello %s. KYS\n", user.Username)
         fmt.Printf("enter commands:\n")

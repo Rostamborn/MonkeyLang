@@ -44,6 +44,17 @@ func (vm *VM) push(obj object.Object) error {
     return nil
 }
 
+func (vm *VM) pop() object.Object {
+    if vm.sp == 0 {
+        return nil
+    }
+
+    obj := vm.stack[vm.sp-1]
+    vm.sp--
+
+    return obj
+}
+
 func (vm *VM) Run() error {
     for ip := 0; ip < len(vm.instructions); ip++ {
         op := code.Opcode(vm.instructions[ip])
@@ -55,6 +66,16 @@ func (vm *VM) Run() error {
             err := vm.push(vm.constants[const_index])
             if err != nil {
                 return err
+            }
+        case code.OpAdd:
+            right := vm.pop()
+            left := vm.pop()
+            if left != nil && right != nil {
+                left_val := left.(*object.Integer)
+                right_val := right.(*object.Integer)
+                vm.push(&object.Integer{Value: left_val.Value + right_val.Value})
+            } else {
+                return fmt.Errorf("unsupported types for operation %d : %s %s", code.OpAdd, left.Type(), right.Type())
             }
         }
     }
