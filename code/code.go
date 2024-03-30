@@ -23,7 +23,7 @@ func (ins Instructions) String() string {
 
         fmt.Fprintf(&out, "%04d %s\n", i, ins.instructionsFormat(def, operands))
 
-        i = i + 1 + read
+        i = i + 1 + read // +1 because of OpCode
     }
 
     return out.String()
