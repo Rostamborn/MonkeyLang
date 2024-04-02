@@ -64,6 +64,16 @@ func TestIntegerArithmetic(t *testing.T) {
                 code.Make(code.OpPop),
             },
         },
+        {
+            input:
+            "-1",
+            expectedConstants: []interface{}{1},
+            expectedInstructions: []code.Instructions{
+                code.Make(code.OpConstant, 0),
+                code.Make(code.OpMinus),
+                code.Make(code.OpPop),
+            },
+        },
     }
 
     runCompilerTests(t, tests)
@@ -150,6 +160,63 @@ func TestBooleanExpression(t *testing.T) {
                 code.Make(code.OpTrue),
                 code.Make(code.OpFalse),
                 code.Make(code.OpNotEqual),
+                code.Make(code.OpPop),
+            },
+        },
+        {
+            input:
+            "!true",
+            expectedConstants: []interface{}{},
+            expectedInstructions: []code.Instructions{
+                code.Make(code.OpTrue),
+                code.Make(code.OpBang),
+                code.Make(code.OpPop),
+            },
+        },
+    }
+
+    runCompilerTests(t, tests)
+}
+
+func TestConditionals(t *testing.T) {
+    tests := []compilerTestCase{
+        {
+        input: `
+        if (true) {10}; 2000;
+        `,
+        expectedConstants: []interface{}{10, 2000},
+        expectedInstructions: []code.Instructions{
+            code.Make(code.OpTrue), // 0000
+            code.Make(code.OpJNE, 10), // 0001
+            code.Make(code.OpConstant, 0), // 0004
+            code.Make(code.OpJmp, 11), // 0007
+            code.Make(code.OpNull), // 0010
+            code.Make(code.OpPop), // 0011
+            code.Make(code.OpConstant, 1), // 0012
+            code.Make(code.OpPop), // 0015
+            },
+        },
+        {
+            input: `
+            if (true) { 10 } else { 20 }; 3333;
+            `,
+            expectedConstants: []interface{}{10, 20, 3333},
+            expectedInstructions: []code.Instructions{
+                // 0000
+                code.Make(code.OpTrue),
+                // 0001
+                code.Make(code.OpJNE, 10),
+                // 0004
+                code.Make(code.OpConstant, 0),
+                // 0007
+                code.Make(code.OpJmp, 13),
+                // 0010
+                code.Make(code.OpConstant, 1),
+                // 0013
+                code.Make(code.OpPop),
+                // 0014
+                code.Make(code.OpConstant, 2),
+                // 0017
                 code.Make(code.OpPop),
             },
         },

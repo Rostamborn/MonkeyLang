@@ -7,6 +7,11 @@ import (
     "monkey/code"
 )
 
+type EmittedInstruction struct {
+    Opcode code.Opcode
+    Pos int
+}
+
 type Bytecode struct {
     Instructions code.Instructions
     Constants []object.Object
@@ -15,18 +20,30 @@ type Bytecode struct {
 type Compiler struct {
     Instructions code.Instructions
     Constants []object.Object
+    lastIns EmittedInstruction
+    prevIns EmittedInstruction
 }
+
 
 func New_Compiler() *Compiler {
     return &Compiler{
         Instructions: code.Instructions{},
         Constants: []object.Object{},
+        lastIns: EmittedInstruction{},
+        prevIns: EmittedInstruction{},
     }
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
     switch node := node.(type) {
     case *ast.Program:
+        for _, s := range node.Statements {
+            err := c.Compile(s)
+            if err != nil {
+                return err
+            }
+        }
+    case *ast.BlockStatement:
         for _, s := range node.Statements {
             err := c.Compile(s)
             if err != nil {
@@ -40,7 +57,6 @@ func (c *Compiler) Compile(node ast.Node) error {
         }
         c.emit(code.OpPop)
     case *ast.InfixExpression:
-        fmt.Println("infix expression")
         if node.Operator == ">" {
             err := c.Compile(node.Right)
             if err != nil {
@@ -77,7 +93,6 @@ func (c *Compiler) Compile(node ast.Node) error {
             c.emit(code.OpDiv)
         case "<":
             c.emit(code.OpLessThan)
-            fmt.Println("lessthan emitted")
         case "==":
             c.emit(code.OpEqual)
         case "!=":
@@ -85,6 +100,63 @@ func (c *Compiler) Compile(node ast.Node) error {
         default:
             return fmt.Errorf("unknown operator: %s", node.Operator)
         }
+    case *ast.PrefixExpression:
+        err := c.Compile(node.Right)
+        if err != nil {
+            return err
+        }
+        
+        switch node.Operator {
+        case "!":
+            c.emit(code.OpBang)
+        case "-":
+            c.emit(code.OpMinus)
+        default:
+            return fmt.Errorf("unkown operator %s", node.Operator)
+        }
+    case *ast.IfExpression:
+        err := c.Compile(node.Condition)
+        if err != nil {
+            return err
+        }
+
+        jneInsPos := c.emit(code.OpJNE, 6969)
+
+        err = c.Compile(node.Consequence)
+        if err != nil {
+            return err
+        }
+        if c.lastIns.Opcode == code.OpPop { // remove the pop created by consequence
+            c.removeLastPop()
+        }
+
+        // TODO: this is deeply wrong(meaning the ast is generated wrongly)
+        // and hence the generated code is wrong. fix them all
+        for _, alt := range node.Alternative {
+            err := c.Compile(alt)
+            if err != nil {
+                return err
+            }
+        }
+
+        jmpPos := c.emit(code.OpJmp, 6969)
+
+        c.changeOperand(jneInsPos, len(c.Instructions))
+
+        if node.Default == nil {
+            c.emit(code.OpNull)
+        } else {
+            err := c.Compile(node.Default)
+            if err != nil {
+                return err
+            }
+            if c.lastIns.Opcode == code.OpPop { // remove the pop created by consequence
+                c.removeLastPop()
+            }
+        }
+
+        c.changeOperand(jmpPos, len(c.Instructions))
+
     case *ast.IntegerLiteral:
         integer := &object.Integer{Value: node.Value}
         c.emit(code.OpConstant, c.addConstant(integer)) // the index in constant pool
@@ -95,7 +167,6 @@ func (c *Compiler) Compile(node ast.Node) error {
             c.emit(code.OpFalse)
         }
     }                                                   // is the constant identifier
-    fmt.Println(c.Instructions)
                                                         // adn the VM knows to load what
     return nil
 }
@@ -118,8 +189,35 @@ func (c *Compiler) addInstruction(ins []byte) int {
     return pos_new_ins
 }
 
+// NOTE: the new Instruction should be the same width as the old one
+func (c *Compiler) replaceInstruction(newIns []byte, pos int) {
+    for i := 0; i < len(newIns); i++ {
+        c.Instructions[pos + i] = newIns[i]
+    }
+}
+
+func (c *Compiler) changeOperand(opPos int, operand int) {
+    op := code.Opcode(c.Instructions[opPos])
+    newIns := code.Make(op, operand)
+    c.replaceInstruction(newIns, opPos)
+}
+
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
     ins := code.Make(op, operands...)
     pos := c.addInstruction(ins)
+
+    c.setLastInstruction(op, pos)
+
     return pos
+}
+
+func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+    last := EmittedInstruction{Opcode: op, Pos: pos}
+    c.prevIns = c.lastIns
+    c.lastIns = last
+}
+
+func (c *Compiler) removeLastPop() {
+    c.Instructions = c.Instructions[:c.lastIns.Pos]
+    c.lastIns = c.prevIns
 }
