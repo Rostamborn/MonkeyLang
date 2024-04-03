@@ -142,6 +142,26 @@ func (vm *VM) Run() error {
             if err != nil {
                 return err
             }
+        case code.OpHash:
+            numElements := int(code.ReadUint16(vm.instructions[ip+1:]))
+            ip += 2
+
+            hashmap, err := vm.buildHashMap(vm.sp - numElements, vm.sp)
+            if err != nil {
+                return err
+            }
+
+            vm.sp -= numElements
+
+            err = vm.push(hashmap)
+        case code.OpIndex:
+            index := vm.pop()
+            left := vm.pop()
+            
+            err := vm.executeIndexExpression(left, index)
+            if err != nil {
+                return err
+            }
         case code.OpPop:
             vm.pop()
         case code.OpNull:
@@ -265,6 +285,45 @@ func (vm *VM) executeMinusOperator() error {
     return vm.push(&object.Integer{Value: -val})
 }
 
+func (vm *VM) executeIndexExpression(left, index object.Object) error {
+    switch {
+    case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+        return vm.executeArrayIndex(left, index)
+    case left.Type() == object.HASHMAP_OBJ:
+        return vm.executeHashIndex(left, index)
+    default:
+        return fmt.Errorf("index operator not supported: %s", left.Type())
+    }
+}
+
+func (vm *VM) executeArrayIndex(left, index object.Object) error {
+    arrayObj := left.(*object.Array)
+    i := index.(*object.Integer).Value
+    boundry := int64(len(arrayObj.Elements) - 1)
+
+    if i < 0 || i > boundry {
+        return vm.push(Null)
+    }
+
+    return vm.push(arrayObj.Elements[i])
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error {
+    hashMap := hash.(*object.HashMap)
+
+    key, ok := index.(object.Hashable)
+    if !ok {
+        return fmt.Errorf("unusable as hash key: %s", index.Type())
+    }
+
+    pair, ok := hashMap.Pairs[key.HashKey()]
+    if !ok {
+        return vm.push(Null)
+    }
+
+    return vm.push(pair.Value)
+}
+
 func (vm *VM) buildArray(start , end int) object.Object {
     elements := make([]object.Object, end - start)
 
@@ -273,6 +332,26 @@ func (vm *VM) buildArray(start , end int) object.Object {
     }
 
     return &object.Array{Elements: elements}
+}
+
+func (vm *VM) buildHashMap(start, end int) (object.Object, error) {
+    hashedPairs := make(map[object.HashKey]object.HashPair)
+
+    for i := start; i < end; i += 2 {
+        key := vm.stack[i]
+        value := vm.stack[i+1]
+
+        pair := object.HashPair{Key: key, Value: value}
+
+        hashKey, ok := key.(object.Hashable)
+        if !ok {
+            return nil, fmt.Errorf("unsuable as hash key: %s", key.Type())
+        }
+
+        hashedPairs[hashKey.HashKey()] = pair
+    }
+
+    return &object.HashMap{Pairs: hashedPairs}, nil
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
