@@ -131,6 +131,17 @@ func (vm *VM) Run() error {
             if err != nil {
                 return err
             }
+        case code.OpArray:
+            numElements := int(code.ReadUint16(vm.instructions[ip+1:]))
+            ip += 2
+
+            array := vm.buildArray(vm.sp - numElements, vm.sp)
+            vm.sp -= numElements
+
+            err := vm.push(array)
+            if err != nil {
+                return err
+            }
         case code.OpPop:
             vm.pop()
         case code.OpNull:
@@ -155,6 +166,8 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
     switch {
     case left_type == object.INTEGER_OBJ && right_type == object.INTEGER_OBJ:
         return vm.executeBinaryIntegerOperation(op, left, right)
+    case left_type == object.STRING_OBJ && right_type == object.STRING_OBJ:
+        return vm.executeBinaryStringOperation(op, left, right)
     }
 
     return fmt.Errorf("unsupported types for binary operation: %s %s", left_type, right_type)
@@ -179,6 +192,17 @@ func (vm *VM) executeBinaryIntegerOperation(op code.Opcode, left, right object.O
     }
 
     return vm.push(&object.Integer{Value: result})
+}
+
+func (vm *VM) executeBinaryStringOperation(op code.Opcode, left, right object.Object) error {
+    if op != code.OpAdd {
+        return fmt.Errorf("unknown string operator: %d", op)
+    }
+
+    left_val := left.(*object.String).Value
+    right_val := right.(*object.String).Value
+
+    return vm.push(&object.String{Value: left_val + right_val})
 }
 
 func (vm *VM) executeComparison(op code.Opcode) error {
@@ -239,6 +263,16 @@ func (vm *VM) executeMinusOperator() error {
 
     val := operand.(*object.Integer).Value
     return vm.push(&object.Integer{Value: -val})
+}
+
+func (vm *VM) buildArray(start , end int) object.Object {
+    elements := make([]object.Object, end - start)
+
+    for i := start; i < end; i++ {
+        elements[i - start] = vm.stack[i]
+    }
+
+    return &object.Array{Elements: elements}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
