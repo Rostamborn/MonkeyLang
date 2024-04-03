@@ -12,6 +12,7 @@ var False = &object.Boolean{Value: false}
 var Null = &object.Null{}
 
 const StackSize = 2048
+const GlobalSize = 65536
 
 type VM struct {
     instructions code.Instructions
@@ -19,6 +20,7 @@ type VM struct {
     stack []object.Object
     sp int // stack pointer which points to the
            // place after the top of the stack
+    globals []object.Object
 }
 
 func New_VM(bytecode *compiler.Bytecode) *VM {
@@ -27,7 +29,14 @@ func New_VM(bytecode *compiler.Bytecode) *VM {
         constants: bytecode.Constants,
         stack: make([]object.Object, StackSize),
         sp: 0,
+        globals: make([]object.Object, GlobalSize),
     }
+}
+
+func New_VM_With_Global_Store(bytecode *compiler.Bytecode, s[]object.Object) *VM {
+    vm := New_VM(bytecode)
+    vm.globals = s
+    return vm
 }
 
 func (vm *VM) LastPopped() object.Object {
@@ -46,7 +55,7 @@ func (vm *VM) push(obj object.Object) error {
 
 func (vm *VM) pop() object.Object {
     if vm.sp == 0 {
-        return nil
+        return Null
     }
 
     obj := vm.stack[vm.sp-1]
@@ -77,6 +86,20 @@ func (vm *VM) Run() error {
             condition := vm.pop()
             if !isTruthy(condition) {
                 ip = pos - 1
+            }
+        case code.OpSetGlobal:
+            globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+            ip += 2
+
+            vm.globals[globalIndex] = vm.pop()
+
+        case code.OpGetGlobal:
+            globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+            ip += 2
+
+            err := vm.push(vm.globals[globalIndex])
+            if err != nil {
+                return err
             }
         case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv:
             err := vm.executeBinaryOperation(op)

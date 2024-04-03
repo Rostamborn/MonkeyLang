@@ -1,15 +1,17 @@
 package repl
 
-import(
-    "bufio"
-    "fmt"
-    "io"
-    "monkey/lexer"
-    "monkey/parser"
-    // "monkey/evaluator"
-    // "monkey/object"
-    "monkey/compiler"
-    "monkey/vm"
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"monkey/lexer"
+	"monkey/object"
+	"monkey/parser"
+
+	// "monkey/evaluator"
+	// "monkey/object"
+	"monkey/compiler"
+	"monkey/vm"
 )
 
 const PROMPT = "$ "
@@ -17,6 +19,9 @@ const PROMPT = "$ "
 func Start(in io.Reader, out io.Writer) {
     scanner := bufio.NewScanner(in)
     // env := object.NewEnvironment()
+    constants := []object.Object{}
+    globals := make([]object.Object, vm.GlobalSize)
+    symTable := compiler.NewSymTable()
 
     for {
         fmt.Print(PROMPT)
@@ -34,14 +39,14 @@ func Start(in io.Reader, out io.Writer) {
             continue
         }
 
-        comp := compiler.New_Compiler()
+        comp := compiler.New_Compiler_With_States(constants, symTable)
         err := comp.Compile(program)
         if err != nil {
             fmt.Fprintf(out, "Compilation failed:\n %s\n", err)
             continue
         }
 
-        virt_machine := vm.New_VM(comp.Bytecode())
+        virt_machine := vm.New_VM_With_Global_Store(comp.Bytecode(), globals)
         err = virt_machine.Run()
         if err != nil {
             fmt.Fprintf(out, "Execution failed:\n %s\n", err)
@@ -49,8 +54,11 @@ func Start(in io.Reader, out io.Writer) {
         }
 
         stack_top := virt_machine.LastPopped()
-        io.WriteString(out, stack_top.Inspect())
-        io.WriteString(out, "\n")
+        if stack_top != nil {
+            io.WriteString(out, stack_top.Inspect())
+            io.WriteString(out, "\n")
+        }
+        
 
         // evalueated := evaluator.Eval(program, env)
         // if evalueated != nil {

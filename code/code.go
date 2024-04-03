@@ -62,6 +62,8 @@ const (
     OpJmp
     OpJNE // jump not equal
     OpNull
+    OpSetGlobal
+    OpGetGlobal
 )
 
 type Definition struct {
@@ -86,6 +88,8 @@ var definitions = map[Opcode]*Definition{
     OpJmp: {"OpJmp", []int{2}},
     OpJNE: {"OpJNE", []int{2}},
     OpNull: {"OpNull", []int{}},
+    OpSetGlobal: {"OpSetGlobal", []int{2}},
+    OpGetGlobal: {"OpGetGlobal", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

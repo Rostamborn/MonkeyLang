@@ -22,6 +22,7 @@ type Compiler struct {
     Constants []object.Object
     lastIns EmittedInstruction
     prevIns EmittedInstruction
+    symTable *SymTable
 }
 
 
@@ -31,6 +32,17 @@ func New_Compiler() *Compiler {
         Constants: []object.Object{},
         lastIns: EmittedInstruction{},
         prevIns: EmittedInstruction{},
+        symTable: NewSymTable(),
+    }
+}
+
+func New_Compiler_With_States(constants []object.Object, symTable *SymTable) *Compiler {
+    return &Compiler{
+        Instructions: code.Instructions{},
+        Constants: constants,
+        lastIns: EmittedInstruction{},
+        prevIns: EmittedInstruction{},
+        symTable: symTable,
     }
 }
 
@@ -50,12 +62,22 @@ func (c *Compiler) Compile(node ast.Node) error {
                 return err
             }
         }
+    case *ast.LetStatement:
+        err := c.Compile(node.Value)
+        if err != nil {
+            return err
+        }
+        
+        symbol := c.symTable.Define(node.Name.Value)
+        c.emit(code.OpSetGlobal, symbol.Index)
+
     case *ast.ExpressionStatement:
         err := c.Compile(node.Expression)
         if err != nil {
             return err
         }
         c.emit(code.OpPop)
+
     case *ast.InfixExpression:
         if node.Operator == ">" {
             err := c.Compile(node.Right)
@@ -166,6 +188,13 @@ func (c *Compiler) Compile(node ast.Node) error {
         } else {
             c.emit(code.OpFalse)
         }
+    case *ast.Identifier:
+        symbol, ok := c.symTable.Resolve(node.Value)
+        if !ok {
+            return fmt.Errorf("undefined variable %s", node.Value)
+        }
+
+        c.emit(code.OpGetGlobal, symbol.Index)
     }                                                   // is the constant identifier
                                                         // adn the VM knows to load what
     return nil
