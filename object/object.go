@@ -19,6 +19,7 @@ const (
     BUILTIN_OBJ = "BUILTIN"
     ARRAY_OBJ = "ARRAY"
     HASHMAP_OBJ = "HASHMAP"
+    COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION"
 )
 
 type ObjectType string
@@ -223,4 +224,16 @@ func (hm *HashMap) Inspect() string {
     out.WriteString("}")
 
     return out.String()
+}
+
+type CompiledFunction struct {
+    Instructions []byte
+}
+
+func (cf *CompiledFunction) Type() ObjectType {
+    return COMPILED_FUNCTION_OBJ
+}
+
+func (cf *CompiledFunction) Inspect() string {
+    return fmt.Sprintf("CompiledFunction[%p]", cf)
 }
