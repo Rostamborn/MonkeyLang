@@ -27,7 +27,7 @@ type VM struct {
 
 func New_VM(bytecode *compiler.Bytecode) *VM {
     mainFun := &object.CompiledFunction{Instructions: bytecode.Instructions}
-    mainFrame := New_Frame(mainFun)
+    mainFrame := New_Frame(mainFun, 0)
 
     frames := make([]*Frame, MaxFrames)
     frames[0] = mainFrame
@@ -79,13 +79,11 @@ func (vm *VM) Run() error {
     var op code.Opcode
 
     for vm.currFrame().ip < (len(vm.currFrame().Instructions()) - 1) {
-        fmt.Printf("ip: %d\n", ip)
         vm.currFrame().ip++
 
         ip = vm.currFrame().ip
         ins = vm.currFrame().Instructions()
         op = code.Opcode(ins[ip])
-        fmt.Println(ins)
 
         switch op {
         case code.OpConstant:
@@ -117,6 +115,17 @@ func (vm *VM) Run() error {
             vm.currFrame().ip += 2
 
             err := vm.push(vm.globals[globalIndex])
+            if err != nil {
+                return err
+            }
+        case code.OpSetLocal:
+            localIndex := int(code.ReadUint8(ins[ip+1:]))
+            vm.currFrame().ip += 1
+            vm.stack[vm.currFrame().basePtr + localIndex] = vm.pop()
+        case code.OpGetLocal:
+            localIndex := int(code.ReadUint8(ins[ip+1:]))
+            vm.currFrame().ip += 1
+            err := vm.push(vm.stack[vm.currFrame().basePtr + localIndex])
             if err != nil {
                 return err
             }
@@ -186,20 +195,22 @@ func (vm *VM) Run() error {
             if !ok {
                 return fmt.Errorf("calling non-function")
             }
-            frame := New_Frame(fn)
+            frame := New_Frame(fn, vm.sp)
             vm.pushFrame(frame)
+            vm.sp = frame.basePtr + fn.NumLocals // == vm.sp += fn.NumLocals
         case code.OpReturnValue:
             returnValue := vm.pop()
+            vm.sp = vm.currFrame().basePtr - 1 // -1 because of popping the just executed function.
+                                               // used instad of vm.pop()
             vm.popFrame()
-            vm.pop() // popping CompiledFunction
 
             err := vm.push(returnValue)
             if err != nil {
                 return err
             }
         case code.OpReturn:
+            vm.sp = vm.currFrame().basePtr - 1
             vm.popFrame()
-            vm.pop() // popping CompiledFunction
 
             err := vm.push(Null)
             if err != nil {

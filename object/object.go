@@ -228,6 +228,7 @@ func (hm *HashMap) Inspect() string {
 
 type CompiledFunction struct {
     Instructions []byte
+    NumLocals int
 }
 
 func (cf *CompiledFunction) Type() ObjectType {
