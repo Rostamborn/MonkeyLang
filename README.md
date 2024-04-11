@@ -1,8 +1,9 @@
 # Monkey Lang
 
 ### Overview
-This is a language mostly based on the fantastic book 
-[Writing An Interpreter In Go](https://interpreterbook.com/). 
+This is a language mostly based on the fantastic books 
+[Writing An Interpreter In Go](https://interpreterbook.com/) and 
+[Writing a compiler in Go](https://compilerbook.com/). 
 I do this for educational purposes so I can build my own stuff 
 from ground up later. 
 
@@ -11,13 +12,23 @@ from ground up later.
 simply clone the repo and: 
 ```sh
 cd MonkeyLang
-go run .
+go build -o monkey main.go
 ```
-by doing this, you will run the REPL(Interactive mode) 
+
+to start the REPL (interactive mode):  
+```sh
+./monkey
+```
+
+to compile and run a monkey file (*.monkey):
+```sh
+./monkey path/to/file
+```
+
 ## Features
 the language is mostly gonna be based on the book, but shall 
 also include more features like support for else-if expressions. 
-
+Closures aren't implemented yet.
 
 ## Structure
 
@@ -47,10 +58,8 @@ as a way to keep track of identifiers and the values associated with them(kind o
 Functions have their own environments that are the extension of the environment they were defined 
 in. That is precisely the reason why closures are possible.
 
-
-## Current State for Go version
-| Feature | State |
-| ------- | -------|
-| Lexer | working state |
-| Parser | working state |
-| Eval/Semantics | working state |
+#### Compiler & Virtual Machine
+This would serve as a replacement for the `Eval` method. The complier would emit ad hoc
+instructions for our vitual machine to execute. The virtual machine is aptly named, as it
+similuates a made-up machine and operates on our made-up instructions(Intermediate Representation).
+ A lot of  parallels can be drawn with a real world machine and architecture (ie. X86, arm, etc.) like calling convetions, jump instructions etc.
