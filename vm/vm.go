@@ -191,13 +191,21 @@ func (vm *VM) Run() error {
                 return err
             }
         case code.OpCall:
-            fn, ok := vm.stack[vm.sp - 1].(*object.CompiledFunction)
+            numArgs := int(code.ReadUint8(ins[ip+1:]))
+            vm.currFrame().ip += 1
+
+            fn, ok := vm.stack[vm.sp - 1 - numArgs].(*object.CompiledFunction)
             if !ok {
                 return fmt.Errorf("calling non-function")
             }
-            frame := New_Frame(fn, vm.sp)
+
+            if numArgs != fn.NumParams {
+                return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fn.NumParams, numArgs)
+            }
+
+            frame := New_Frame(fn, vm.sp - numArgs)
             vm.pushFrame(frame)
-            vm.sp = frame.basePtr + fn.NumLocals // == vm.sp += fn.NumLocals
+            vm.sp = frame.basePtr + fn.NumLocals
         case code.OpReturnValue:
             returnValue := vm.pop()
             vm.sp = vm.currFrame().basePtr - 1 // -1 because of popping the just executed function.
